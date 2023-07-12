@@ -6,3 +6,5 @@ data/.DS_Store
 documentatie/.DS_Store
 HUP/.DS_Store
 .idea
+__pycache__
+HUP
