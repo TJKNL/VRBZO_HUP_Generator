@@ -214,7 +214,7 @@ class KRO_Tree:
         df['functie'] = df['functie'].apply(lambda x: x if pd.notna(x) and df.loc[df['functie'] == x, x].all() else '')
 
         # Combine straatnaam, huisnr and huistoevg columns into a single column
-        df['adres'] = df['straatnaam'] + ' ' + df['huisnr'].astype(int).astype(str) + df['huisletter'].apply(
+        df['adres'] = df['straatnaam'] + ' ' + df['huisnr'].apply(lambda x: str(int(x)) if pd.notna(x) else '') + df['huisletter'].apply(
             lambda x: f'-{x}' if pd.notna(x) else '') + df['huistoevg'].apply(lambda x: f'{x}' if pd.notna(x) else '')
 
         # Filter self.data_gebruik for non-empty 'naam_vol' and take the first occurrence for each 'aanzien_id'
