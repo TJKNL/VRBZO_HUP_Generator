@@ -8,7 +8,7 @@ This repository is a cleaned-up version of the original repository used during d
 ## Branches
 
 - **main branch**: Contains all files necessary for local development, including context information about the project.
-- **production branch**: Intended for deployment and distribution purposes.
+- **production branch**: Intended for deployment and distribution purposes. Made obsolete by Releases.
 
 ## How it Works
 
@@ -30,13 +30,13 @@ By following this workflow, you can easily manage the development and deployment
 
 To use the VRBZO HUP Generator, follow these steps:
 
-1. Clone or download the `production` branch to your local environment.
+1. Clone or download the `production` branch to your local environment. Or more easily, get the executable from Releases!
 
-2. Run the executable file named "main" to generate the new HUP.
+2. Run the executable file named "HUP_Generator" to generate the new HUP. See the required file structure in point 5 in the "How it Works" section above.
 
 3. Distribute the generated HUP file to the appropriate stakeholders as per your project requirements.
 
-For detailed instructions and information about the HUP generation process, please refer to the documentation provided in the `main` branch.
+
 
 ## License
 
