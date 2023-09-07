@@ -30,8 +30,11 @@ tree.reset()
 
 #%%
 # Industrie onmogelijk filterbaar, inzetdiepte is onbekend.
-
-
+tree.filter("industriefunctie", "==", 1)
+tree.filter("bag_oppvlk", ">", 2500)
+tree.set_risk("C")
+tree.store_results()
+tree.reset()
 
 #%%
 tree.filter("winkelfunctie", "==", 1)
