@@ -50,10 +50,9 @@ class KRO_Tree:
 
             # Check if 'bronsleutel' exists as 'aanzien_id' in 'data_gebruik'
             matched_rows = self.data_gebruik[self.data_gebruik['aanzien_id'] == bronsleutel]
-
             # If 'bronsleutel' exists in 'data_gebruik', check if any of the 'personen' values satisfy the filter condition
             if not matched_rows.empty:
-                if any(self.filter_functions[operator](matched_rows, 'personen', value)):
+                if not self.filter_functions[operator](matched_rows, 'personen', float(value)).empty:
                     valid_bronsleutel.append(bronsleutel)
                     # print(f"bronsleutel: {bronsleutel} satisfies the filter condition.")
                 else:
@@ -214,7 +213,8 @@ class KRO_Tree:
         df['functie'] = df['functie'].apply(lambda x: x if pd.notna(x) and df.loc[df['functie'] == x, x].all() else '')
 
         # Combine straatnaam, huisnr and huistoevg columns into a single column
-        df['adres'] = df['straatnaam'] + ' ' + df['huisnr'].apply(lambda x: str(int(x)) if pd.notna(x) else '') + df['huisletter'].apply(
+        df['adres'] = df['straatnaam'] + ' ' + df['huisnr'].apply(lambda x: str(int(x)) if pd.notna(x) else '') + df[
+            'huisletter'].apply(
             lambda x: f'-{x}' if pd.notna(x) else '') + df['huistoevg'].apply(lambda x: f'{x}' if pd.notna(x) else '')
 
         # Filter self.data_gebruik for non-empty 'naam_vol' and take the first occurrence for each 'aanzien_id'
