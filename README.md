@@ -1,6 +1,6 @@
 # VRBZO HUP Generator
 
-This package provides a solution for generating a new HUP (Handhaving Uitvoerings Programma) for the VRBZO (Veiligheidsregio Brabant-Zuidoost) project exectued by me under the name of ClickLogic.
+This package provides a solution for generating a new HUP (Handhaving Uitvoerings Programma) for the VRBZO (Veiligheidsregio Brabant-Zuidoost) project exectued by me under the name of ClickLogic. Please see the **Handleiding.pdf** for a easy to read (Dutch) manual for the product.
 
 ## Note
 This repository is a cleaned-up version of the original repository used during development. In the spirit of opensource development compromising or proprietary information has been removed to allow public publishing. Please contact me if you need access to the original repo. 
