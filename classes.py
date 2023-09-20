@@ -235,8 +235,10 @@ class KRO_Tree:
         data_gebruik_filtered_act1code = self.data_gebruik.loc[self.data_gebruik['act1code'].notna()].drop_duplicates(
             'aanzien_id', keep='first')
 
-        # Map 'bronsleutel' from df to 'act1code' from data_gebruik_filtered_act1code
+        # Map 'bronsleutel' from df to 'act1code' and 'act1omschr' from data_gebruik_filtered_act1code
         df['SBI1'] = df['bronsleutel'].map(data_gebruik_filtered_act1code.set_index('aanzien_id')['act1code'])
+        df['act1omschr'] = df['bronsleutel'].map(data_gebruik_filtered_act1code.set_index('aanzien_id')['act1omschr'])
+
 
         # Check for duplicates.
         df.drop_duplicates(subset=['id'], keep='first', inplace=True)
@@ -251,12 +253,17 @@ class KRO_Tree:
         new_df['Adres'] = df['adres']
         new_df['Postcode'] = df['pc6']
         new_df['Gemeente'] = df['gemnaam']
+        # Fill some columns to adhere to original HUP tempalte.
         new_df = new_df.assign(filler_1=None, filler_12=None, filler_3=None, filler_4=None,
                                filler_5=None, filler_6=None)
         new_df['woz oppervlakte (niet woon)'] = df['woz_opp_nietwoon']
         new_df['Pandhoogte'] = df['pandhoogte']
         new_df['Personen'] = df['personen']
         new_df['SBI1'] = df['SBI1']  # add new 'SBI1' column to new_df
+        new_df['SBI Omschrijving'] = df['act1omschr']
+        new_df['x'] = df['x']
+        new_df['y'] = df['y']
+        # New columns can be added here
         return new_df
 
     def insert_dataframe_into_excel(self, template_path, sheet_name, start_row, add_A=False, remove_no_name=False):
