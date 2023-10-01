@@ -81,13 +81,7 @@ tree.set_risk("C")
 tree.store_results()
 tree.reset()
 
-#%% Filtering for personen still leads to problems. Not really viable.
-# tree.filter("overigefunctie", "==", 1)
-# tree.filter("personen", ">", 1000)
-# # Can't filter for vehicle storage
-# tree.set_risk("B")
-# tree.store_results()
-# tree.reset()
+
 
 #%%
 #tree.save_hup()

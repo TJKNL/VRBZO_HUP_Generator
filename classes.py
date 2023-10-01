@@ -263,6 +263,8 @@ class KRO_Tree:
         new_df['SBI Omschrijving'] = df['act1omschr']
         new_df['x'] = df['x']
         new_df['y'] = df['y']
+        new_df['Bouwjaar'] = df['bouwjaar']
+        new_df['Bouwlagen'] = df['bouwlagen']
         # New columns can be added here
         return new_df
 
