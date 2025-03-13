@@ -28,23 +28,25 @@ def ui_header():
     """Display application header and information."""
     set_env(title="HUP Generator Tool")
     
-    put_markdown("""
-    # HUP Generator Tool
+    # Main title and subtitle with attribution
+    put_markdown("# HUP Generator Tool").style('margin-bottom: 5px;')
+    put_html('<div style="margin-bottom: 20px; color: #6c757d; font-size: 0.95rem;">Developed by <a href="https://www.twankerkhof.nl" target="_blank" style="color: #3498db; font-weight: bold; text-decoration: none;">Twan Kerkhof</a></div>')
     
+    # Application description and instructions
+    put_markdown("""
     This tool helps you generate Handhavings Uitvoerings Programma (HUP) files based on KRO data.
-    
-    **Instructions:**
-    1. Upload the required CSV files
-    2. Choose which filters to apply
-    3. Generate the Excel output
     """)
-
-def ui_footer():
-    """Display footer with developer information."""
-    put_markdown("""
-    ---
     
-    Developed by [Twan Kerkhof](https://www.twankerkhof.nl)
+    # Instructions in a clean box
+    put_html("""
+    <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #3498db; border-radius: 4px; margin: 20px 0;">
+        <p style="font-weight: bold; margin-bottom: 10px;">Instructions:</p>
+        <ol style="margin-left: 20px; padding-left: 0;">
+            <li>Upload the required CSV files</li>
+            <li>Choose which filters to apply</li>
+            <li>Generate the Excel output</li>
+        </ol>
+    </div>
     """)
 
 def ui_file_upload() -> tuple:
@@ -187,7 +189,6 @@ def main():
         df_aanzien, df_gebruik = ui_file_upload()
         if df_aanzien is None or df_gebruik is None:
             put_text("Please try again with valid CSV files.")
-            ui_footer()  # Still show footer even if there's an error
             return
         
         # Initialize KRO Tree
@@ -196,7 +197,6 @@ def main():
         except Exception as e:
             put_error(f"Error initializing data processor: {str(e)}")
             put_text("There might be an issue with the structure of your CSV files.")
-            ui_footer()
             return
         
         # Step 2: Filter Selection
@@ -206,7 +206,6 @@ def main():
                 put_warning("No filters were selected. The output may be empty.")
         except Exception as e:
             put_error(f"Error during filter selection: {str(e)}")
-            ui_footer()
             return
         
         # Step 3: Export Options
@@ -214,7 +213,6 @@ def main():
             export_options = ui_export_options()
         except Exception as e:
             put_error(f"Error configuring export options: {str(e)}")
-            ui_footer()
             return
         
         # Step 4: Processing and Export
@@ -224,9 +222,6 @@ def main():
         put_markdown("## Processing Complete")
         put_text("You can now close this window or process another set of files.")
         put_button("Process New Files", onclick=lambda: run_js('window.location.reload()'))
-        
-        # Add footer with developer information
-        ui_footer()
         
     except Exception as e:
         put_error(f"An unexpected error occurred: {str(e)}")
@@ -241,7 +236,6 @@ def main():
             </ul>
         </div>
         """)
-        ui_footer()  # Still show footer even if there's an error
 
 def setup_app_launcher():
     """Set up the application launcher with appropriate UI depending on environment."""
