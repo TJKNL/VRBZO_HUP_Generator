@@ -1,49 +1,75 @@
-# VRBZO HUP Generator
+# HUP Generator Tool
 
-This package provides a solution for generating a new HUP (Handhaving Uitvoerings Programma) for the VRBZO (Veiligheidsregio Brabant-Zuidoost) project exectued by me under the name of ClickLogic. Please see the **Handleiding.pdf** for a easy to read (Dutch) manual for the product.
+A tool for generating Handhavings Uitvoerings Programma (HUP) files based on KRO data.
 
-## Note
-This repository is a cleaned-up version of the original repository used during development. In the spirit of opensource development compromising or proprietary information has been removed to allow public publishing. Please contact me if you need access to the original repo. 
+## Features
 
-## Branches
+- Web-based user interface for easy data upload and configuration
+- Automatic CSV delimiter detection
+- Predefined filters for different building types
+- Excel export with customizable options
+- Standalone executable that doesn't require Python installation
 
-- **main branch**: Contains all files necessary for local development, including context information about the project.
-- **production branch**: Intended for deployment and distribution purposes. Made obsolete by Releases.
+## Installation
 
-## How it Works
+### For End Users (No Python Required)
 
-The VRBZO HUP Generator follows a specific workflow for generating and distributing the HUP. Here are the steps involved:
+1. Download the latest release from the Releases section
+2. Extract the ZIP file to your preferred location
+3. Run the `HUP_Generator.exe` file
 
-1. **Development**: Start with the `main` branch for development. This branch contains all the required files and context information related to the project. Perform local development and testing using this branch.
+When you run the application:
+- A command window will appear with the application status
+- Your default web browser will automatically open with the application interface
+- If the browser doesn't open automatically, you can manually navigate to the URL shown in the command window
 
-2. **Generate Executable**: When ready to compile the project, generate a new executable using the development environment. This executable is named "main" and is the result of compiling the project.
+### For Developers (With Python)
 
-3. **Production Branch**: Switch to the `production` branch. This branch serves as the production-ready branch and is meant for distribution and use.
+1. Clone this repository
+2. Install the required dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
+3. Run the application in development mode:
+   ```
+   python app.py
+   ```
 
-4. **Copy Executable**: Copy the compiled executable file (named "main") from the development environment and place it in the `production` branch. This ensures that the latest version of the executable is available for distribution.
+## Building the Standalone Application
 
-5. **Distribution**: Distribute the `production` branch to the intended users. No need to have python installed, just share the folder. Make sure that it is a main folder with two sub folder namely data and HUP. The new HUP will be output in the HUP folder. Source data should be placed in the data folder with names like this: "KRO-aanzien-R22.csv" & "KRO-gebruik-R22_zonder-contact.csv". This can be changed in the original Python file main.py. 
+To build the standalone executable:
 
-By following this workflow, you can easily manage the development and deployment of the VRBZO HUP Generator.
+```
+python build_app.py
+```
+
+The executable will be created in the `dist` directory.
 
 ## Usage
 
-To use the VRBZO HUP Generator, follow these steps:
+1. **Upload Data Files**:
+   - Upload the KRO-aanzien CSV file
+   - Upload the KRO-gebruik CSV file
 
-1. Clone or download the `production` branch to your local environment. Or more easily, get the executable from Releases!
+2. **Select Filters**:
+   - Choose which building types to include in the HUP
 
-2. Run the executable file named "HUP_Generator" to generate the new HUP. See the required file structure in point 5 in the "How it Works" section above.
+3. **Configure Output**:
+   - Select whether to use the built-in Excel template or upload a custom one
+   - Choose additional options like removing entries without names
 
-3. Distribute the generated HUP file to the appropriate stakeholders as per your project requirements.
+4. **Generate Output**:
+   - The application will process the data and generate an Excel file
+   - The location of the output file will be displayed
 
+## Project Structure
 
+- `app.py`: Main application with UI
+- `data_management.py`: Data handling functions
+- `classes.py`: Core logic and data processing classes
+- `build_app.py`: Script to build the standalone executable
+- `HUP/`: Directory containing Excel templates
 
 ## License
 
-This project is licensed under the MIT License.
-
-Feel free to explore the provided branches and use the VRBZO HUP Generator for your specific needs.
-
-If you encounter any issues or have questions, please don't hesitate to reach out.
-
-Happy generating!
+[Insert License Information]

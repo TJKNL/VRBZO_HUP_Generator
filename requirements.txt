@@ -6,3 +6,6 @@ python-dateutil
 pytz
 six
 tzdata
+pywebio
+flask
+pyinstaller
