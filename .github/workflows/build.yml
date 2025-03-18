@@ -54,13 +54,14 @@ jobs:
       - name: List generated files
         run: |
           echo "Files in dist directory:"
-          ls dist
+          dir dist
         
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: HUP_Generator_Windows
           path: dist/*.exe
+          compression-level: 0  # No compression for binary files
           
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.create_release == 'true'
