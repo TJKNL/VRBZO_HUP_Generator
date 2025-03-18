@@ -26,56 +26,74 @@ from classes import KRO_Tree
 
 def ui_header():
     """Display application header and information."""
-    set_env(title="HUP Generator Tool")
+    set_env(title="HUP Generator")
     
     # Main title and subtitle with attribution
-    put_markdown("# HUP Generator Tool").style('margin-bottom: 5px;')
-    put_html('<div style="margin-bottom: 20px; color: #6c757d; font-size: 0.95rem;">Developed by <a href="https://www.twankerkhof.nl" target="_blank" style="color: #3498db; font-weight: bold; text-decoration: none;">Twan Kerkhof</a></div>')
+    put_markdown("# HUP Generator").style('margin-bottom: 5px;')
+    put_html('<div style="margin-bottom: 20px; color: #6c757d; font-size: 0.95rem;">Ontwikkeld door <a href="https://www.twankerkhof.nl" target="_blank" style="color: #3498db; font-weight: bold; text-decoration: none;">Twan Kerkhof</a></div>')
     
     # Application description and instructions
     put_markdown("""
-    This tool helps you generate Handhavings Uitvoerings Programma (HUP) files based on KRO data.
+    Met deze tool kunt u Handhavings Uitvoerings Programma (HUP) bestanden genereren op basis van KRO-gegevens.
     """)
     
     # Instructions in a clean box
     put_html("""
     <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #3498db; border-radius: 4px; margin: 20px 0;">
-        <p style="font-weight: bold; margin-bottom: 10px;">Instructions:</p>
+        <p style="font-weight: bold; margin-bottom: 10px;">Instructies:</p>
         <ol style="margin-left: 20px; padding-left: 0;">
-            <li>Upload the required CSV files</li>
-            <li>Choose which filters to apply</li>
-            <li>Generate the Excel output</li>
+            <li>Upload de benodigde CSV-bestanden (Gebruik & Aanzien)</li>
+            <li>Kies welke filters u wilt toepassen</li>
+            <li>Genereer de HUP als Excel bestand</li>
         </ol>
     </div>
     """)
 
 def ui_file_upload() -> tuple:
     """Handle file upload UI and return the loaded dataframes."""
-    put_markdown("## Step 1: Upload Data Files")
+    put_markdown("## Stap 1: Upload Gegevensbestanden")
     
     try:
-        aanzien_file = file_upload("Upload KRO-aanzien CSV file:", accept=".csv", required=True)
-        gebruik_file = file_upload("Upload KRO-gebruik CSV file:", accept=".csv", required=True)
+        # More distinct sections for each file upload with clear instructions
+        put_html('<div style="margin-top: 15px; margin-bottom: 10px; padding: 10px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">'
+                '<strong>1a. KRO-aanzien bestand:</strong> Selecteer het CSV bestand met KRO-aanzien gegevens</div>')
         
-        with put_loading("Loading and processing data files..."):
+        aanzien_file = file_upload(
+            label="", 
+            accept=".csv", 
+            required=True,
+            placeholder="Kies KRO-aanzien CSV bestand..."  # Custom button text
+        )
+        
+        put_html('<div style="margin-top: 20px; margin-bottom: 10px; padding: 10px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">'
+                '<strong>1b. KRO-gebruik bestand:</strong> Selecteer het CSV bestand met KRO-gebruik gegevens</div>')
+        
+        gebruik_file = file_upload(
+            label="", 
+            accept=".csv", 
+            required=True,
+            placeholder="Kies KRO-gebruik CSV bestand..."  # Custom button text
+        )
+        
+        with put_loading("Bestanden laden en verwerken..."):
             try:
                 df_aanzien = load_data_from_content(aanzien_file['content'], aanzien_file['filename'])
                 df_gebruik = load_data_from_content(gebruik_file['content'], gebruik_file['filename'])
                 
-                put_success(f"Files loaded successfully: {aanzien_file['filename']} and {gebruik_file['filename']}")
+                put_success(f"Bestanden succesvol geladen: {aanzien_file['filename']} en {gebruik_file['filename']}")
                 return df_aanzien, df_gebruik
                 
             except Exception as e:
-                put_error(f"Error loading files: {str(e)}")
-                put_text("Please check that your files are valid CSV files with the expected columns.")
+                put_error(f"Fout bij het laden van bestanden: {str(e)}")
+                put_text("Controleer of uw bestanden geldige CSV-bestanden zijn met de verwachte kolommen.")
                 return None, None
     except Exception as e:
-        put_error(f"Error during file upload: {str(e)}")
+        put_error(f"Fout tijdens bestandsupload: {str(e)}")
         return None, None
 
 def ui_filter_selection() -> List[str]:
     """UI for filter selection."""
-    put_markdown("## Step 2: Select Filters to Apply")
+    put_markdown("## Stap 2: Selecteer Filters")
     
     # Create user-friendly options from filter definitions
     options = [
@@ -84,25 +102,25 @@ def ui_filter_selection() -> List[str]:
     ]
     
     selected_filters = checkbox(
-        "Select which filters to apply:", 
+        "Selecteer welke filters u wilt toepassen:", 
         options=options,
         required=True
     )
     
     if not selected_filters:
-        put_warning("No filters selected. The output may be empty.")
+        put_warning("Geen filters geselecteerd. De HUP kan leeg zijn.")
     
     return selected_filters
 
 def ui_export_options() -> Dict[str, Any]:
     """UI for export options."""
-    put_markdown("## Step 3: Configure Output Options")
+    put_markdown("## Stap 3: Configureer Uitvoeropties")
     
     template_selection = radio(
-        "Choose Excel template:",
+        "Kies Excel-sjabloon:",
         options=[
-            {"label": "Use built-in template", "value": "builtin"},
-            {"label": "Upload custom template", "value": "custom"}
+            {"label": "Gebruik ingebouwd HUP-sjabloon", "value": "builtin"},
+            {"label": "Upload aangepast HUP-sjabloon", "value": "custom"}
         ],
         required=True
     )
@@ -110,7 +128,7 @@ def ui_export_options() -> Dict[str, Any]:
     template_path = get_executable_relative_path("HUP", "origineel (niet aanpassen).xlsx")
     
     if template_selection == "custom":
-        template_file = file_upload("Upload Excel template:", accept=".xlsx", required=True)
+        template_file = file_upload("Upload Excel-sjabloon:", accept=".xlsx", required=True)
         if template_file:
             with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as temp_file:
                 temp_file.write(template_file['content'])
@@ -120,33 +138,33 @@ def ui_export_options() -> Dict[str, Any]:
     options["template_path"] = template_path
     
     options["remove_no_name"] = checkbox(
-        "Output options:", 
-        options=[{"label": "Remove entries without name", "value": "remove_no_name"}]
+        "Uitvoeropties:", 
+        options=[{"label": "Verwijder items zonder naam", "value": "remove_no_name"}]
     )
     
     options["add_A"] = checkbox(
-        "Advanced options:", 
-        options=[{"label": "Include class A objects (warning: this may significantly increase processing time)", "value": "add_A"}]
+        "Geavanceerde opties:", 
+        options=[{"label": "Voeg klasse A objecten toe (waarschuwing: dit kan de verwerkingstijd aanzienlijk verlengen)", "value": "add_A"}]
     )
     
     return options
 
 def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_options: Dict[str, Any]) -> None:
     """Process the data with selected filters and export to Excel."""
-    put_markdown("## Processing and Generating Output")
+    put_markdown("## Verwerken en Genereren van de HUP")
     
     # Apply filters
-    with put_loading("Applying filters..."):
+    with put_loading("Filters toepassen..."):
         try:
             for filter_key in selected_filters:
-                put_text(f"Applying filter: {FILTER_DEFINITIONS[filter_key]['name']}")
+                put_text(f"Filter toepassen: {FILTER_DEFINITIONS[filter_key]['name']}")
                 apply_filter_to_tree(tree, filter_key)
         except Exception as e:
-            put_error(f"Error applying filters: {str(e)}")
+            put_error(f"Fout bij het toepassen van filters: {str(e)}")
             return
     
     # Export to Excel
-    with put_loading("Generating Excel file..."):
+    with put_loading("Excel-bestand genereren..."):
         try:
             # Create output directory if it doesn't exist
             output_dir = get_executable_relative_path("HUP")
@@ -164,21 +182,21 @@ def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_op
                 remove_no_name="remove_no_name" in export_options["remove_no_name"]
             )
             
-            put_success(f"Excel file generated successfully at: {output_path}")
+            put_success(f"Excel-bestand succesvol gegenereerd op: {output_path}")
             
             # Add a download button
-            put_text("You can find the output file in the following location:")
+            put_text("U kunt het uitvoerbestand vinden op de volgende locatie:")
             put_code(os.path.abspath(output_path))
             
         except FileNotFoundError as e:
-            put_error(f"Error: Template file not found. Please check that the template exists.")
+            put_error(f"Fout: Sjabloonbestand niet gevonden. Controleer of het sjabloon bestaat.")
             put_text(f"Details: {str(e)}")
         except PermissionError as e:
-            put_error(f"Error: Permission denied when writing output file.")
+            put_error(f"Fout: Toegang geweigerd bij het schrijven van uitvoerbestand.")
             put_text(f"Details: {str(e)}")
-            put_text("Make sure you have write permissions to the output directory and the file is not open in another program.")
+            put_text("Zorg ervoor dat u schrijfrechten heeft voor de uitvoermap en dat het bestand niet open is in een ander programma.")
         except Exception as e:
-            put_error(f"Error generating Excel file: {str(e)}")
+            put_error(f"Fout bij het genereren van Excel-bestand: {str(e)}")
 
 def main():
     """Main application flow."""
@@ -188,51 +206,51 @@ def main():
         # Step 1: File Upload
         df_aanzien, df_gebruik = ui_file_upload()
         if df_aanzien is None or df_gebruik is None:
-            put_text("Please try again with valid CSV files.")
+            put_text("Probeer het opnieuw met geldige CSV-bestanden.")
             return
         
         # Initialize KRO Tree
         try:
             tree = KRO_Tree(df_aanzien, df_gebruik)
         except Exception as e:
-            put_error(f"Error initializing data processor: {str(e)}")
-            put_text("There might be an issue with the structure of your CSV files.")
+            put_error(f"Fout bij het initialiseren van de gegevensverwerker: {str(e)}")
+            put_text("Er kan een probleem zijn met de structuur van uw CSV-bestanden.")
             return
         
         # Step 2: Filter Selection
         try:
             selected_filters = ui_filter_selection()
             if not selected_filters:
-                put_warning("No filters were selected. The output may be empty.")
+                put_warning("Er zijn geen filters geselecteerd. De uitvoer kan leeg zijn.")
         except Exception as e:
-            put_error(f"Error during filter selection: {str(e)}")
+            put_error(f"Fout tijdens filterselectie: {str(e)}")
             return
         
         # Step 3: Export Options
         try:
             export_options = ui_export_options()
         except Exception as e:
-            put_error(f"Error configuring export options: {str(e)}")
+            put_error(f"Fout bij het configureren van uitvoeropties: {str(e)}")
             return
         
         # Step 4: Processing and Export
         ui_process_and_export(tree, selected_filters, export_options)
         
         # Completion
-        put_markdown("## Processing Complete")
-        put_text("You can now close this window or process another set of files.")
-        put_button("Process New Files", onclick=lambda: run_js('window.location.reload()'))
+        put_markdown("## Verwerking Voltooid")
+        put_text("U kunt dit venster nu sluiten of een andere set bestanden verwerken.")
+        put_button("Nieuwe Bestanden Verwerken", onclick=lambda: run_js('window.location.reload()'))
         
     except Exception as e:
-        put_error(f"An unexpected error occurred: {str(e)}")
+        put_error(f"Er is een onverwachte fout opgetreden: {str(e)}")
         put_html("""
         <div style="margin-top: 20px; padding: 15px; border: 1px solid #f8d7da; background-color: #f8d7da; color: #721c24; border-radius: 5px;">
-            <h3>Error Details</h3>
-            <p>The application encountered an unexpected error. Here are some things you can try:</p>
+            <h3>Foutdetails</h3>
+            <p>De applicatie is op een onverwachte fout gestuit. Hier zijn enkele dingen die u kunt proberen:</p>
             <ul>
-                <li>Check that your input files are properly formatted CSV files</li>
-                <li>Verify that you have read/write permissions for the application directory</li>
-                <li>Restart the application and try again</li>
+                <li>Controleer of uw invoerbestanden correct geformatteerde CSV-bestanden zijn</li>
+                <li>Verifieer dat u lees-/schrijfrechten hebt voor de applicatiemap</li>
+                <li>Herstart de applicatie en probeer het opnieuw</li>
             </ul>
         </div>
         """)
@@ -240,9 +258,9 @@ def main():
 def setup_app_launcher():
     """Set up the application launcher with appropriate UI depending on environment."""
     parser = argparse.ArgumentParser(description="HUP Generator Tool")
-    parser.add_argument("--port", type=int, default=8080, help="Port for the web server")
-    parser.add_argument("--no-browser", action="store_true", help="Don't open browser automatically")
-    parser.add_argument("--server", action="store_true", help="Run as a server instead of standalone app")
+    parser.add_argument("--port", type=int, default=8080, help="Port voor de webserver")
+    parser.add_argument("--no-browser", action="store_true", help="Browser niet automatisch openen")
+    parser.add_argument("--server", action="store_true", help="Als server draaien in plaats van standalone app")
     args = parser.parse_args()
     
     is_frozen = getattr(sys, 'frozen', False)
@@ -256,7 +274,7 @@ def setup_app_launcher():
             def open_browser():
                 time.sleep(1.5)  # Wait a bit for the server to start
                 url = f"http://localhost:{args.port}"
-                print(f"Opening HUP Generator in your web browser: {url}")
+                print(f"HUP Generator openen in uw webbrowser: {url}")
                 webbrowser.open(url)
             
             threading.Thread(target=open_browser).start()
@@ -265,16 +283,16 @@ def setup_app_launcher():
         print("="*50)
         print("HUP Generator Tool")
         print("="*50)
-        print(f"The application is running at: http://localhost:{args.port}")
-        print("If the browser doesn't open automatically, please open the URL manually.")
-        print("Press Ctrl+C to quit the application.")
+        print(f"De applicatie draait op: http://localhost:{args.port}")
+        print("Als de browser niet automatisch opent, open dan handmatig de URL.")
+        print("Druk op Ctrl+C om de applicatie af te sluiten.")
         print("="*50)
         
         # Start the pywebio server
         start_pywebio_server(main, port=args.port, debug=False)
     else:
         # We're running as a server
-        print(f"Starting HUP Generator server on port {args.port}")
+        print(f"HUP Generator server starten op poort {args.port}")
         start_server(main, port=args.port, debug=False)
 
 if __name__ == "__main__":
