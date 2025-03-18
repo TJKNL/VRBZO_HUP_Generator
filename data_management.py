@@ -2,6 +2,8 @@ import pandas as pd
 import os
 import sys
 import tempfile
+import io
+import csv
 from typing import Tuple, Dict, List, Any, Optional
 
 def load_data_from_file(file_path: str) -> pd.DataFrame:
@@ -51,48 +53,84 @@ def detect_delimiter(file_content: bytes) -> str:
         except:
             pass
 
-def load_data_from_content(file_content: bytes, file_name: str) -> pd.DataFrame:
-    """Load data from uploaded file content, automatically detecting delimiter."""
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as temp_file:
-        temp_file.write(file_content)
-        temp_file_path = temp_file.name
+def load_data_from_content(content: bytes, filename: str, delimiters: List[str] = None) -> pd.DataFrame:
+    """
+    Load data from file content with automatic delimiter detection.
     
-    try:
-        # Auto-detect delimiter
-        delimiter = detect_delimiter(file_content)
-        print(f"Detected delimiter '{delimiter}' for {file_name}")
+    Args:
+        content: Raw bytes content of the file
+        filename: Original filename for reference
+        delimiters: List of delimiters to try, defaults to [',', ';']
         
-        # Load the data with the detected delimiter
-        df = pd.read_csv(temp_file_path, header=0, delimiter=delimiter, encoding='utf-8')
-        print(f"Successfully loaded {file_name} with {len(df)} rows and {len(df.columns)} columns")
-        return df
-    except Exception as e:
-        print(f"Error loading file {file_name}: {e}")
-        raise
-    finally:
+    Returns:
+        pandas.DataFrame: Loaded data
+    """
+    if delimiters is None:
+        delimiters = [',', ';']
+    
+    # Convert bytes to string
+    text_content = content.decode('utf-8', errors='ignore')
+    
+    # Try to detect delimiter using csv.Sniffer
+    try:
+        sample = text_content[:4096]  # Use first 4096 characters as sample
+        dialect = csv.Sniffer().sniff(sample)
+        if dialect.delimiter in delimiters:
+            return pd.read_csv(io.StringIO(text_content), sep=dialect.delimiter)
+    except Exception:
+        # Sniffer can fail if the format is unusual, continue to manual checks
+        pass
+    
+    # If auto-detection fails, try each delimiter in order
+    for delimiter in delimiters:
         try:
-            os.unlink(temp_file_path)
-        except:
-            pass
+            df = pd.read_csv(io.StringIO(text_content), sep=delimiter)
+            # Verify this looks like valid CSV data (has at least one row and multiple columns)
+            if len(df) > 0 and len(df.columns) > 1:
+                return df
+        except Exception:
+            continue
+    
+    # If all attempts fail, try a more aggressive approach with error handling
+    try:
+        # Try pandas with automatic delimiter detection and error handling
+        return pd.read_csv(io.StringIO(text_content), sep=None, engine='python')
+    except Exception as e:
+        raise ValueError(f"Could not parse CSV file {filename}. Error: {str(e)}")
+
+def get_resource_path(relative_path):
+    """
+    Get absolute path to a resource file, works both in development and when bundled with PyInstaller.
+    
+    Args:
+        relative_path: Path relative to the application root
+        
+    Returns:
+        Absolute path to the resource
+    """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 def get_executable_relative_path(*path_parts):
-    """Generate a file path relative to the location of the executable."""
-    # Check if we are running as a script or as a frozen exe
-    if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
-        # If we are running as a frozen exe, the executable is sys.executable
+    """
+    Generate a file path relative to the executable. For output files that need to be written.
+    
+    Args:
+        path_parts: Path components to join with the base directory
+        
+    Returns:
+        Absolute path relative to the executable
+    """
+    # When frozen, use the directory containing the executable
+    if getattr(sys, 'frozen', False):
         base_dir = os.path.dirname(sys.executable)
     else:
-        # If we are running as a script, the executable is this script itself
+        # In development mode, use the script's directory
         base_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Generate a file path relative to this directory
     path = os.path.join(base_dir, *path_parts)
     return path
-
-def get_resource_path(relative_path):
-    """Get absolute path to resource, used for PyInstaller."""
-    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
 
 # Filter definitions for the application
 FILTER_DEFINITIONS = {

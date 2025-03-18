@@ -1,62 +1,111 @@
-import PyInstaller.__main__
-import os
-import shutil
-
-# Define the name of the application
-app_name = "HUP_Generator"
-
-# Create a spec file for PyInstaller
-PyInstaller.__main__.run([
-    'app.py',
-    '--name=%s' % app_name,
-    '--onefile',
-    '--windowed',
-    '--add-data=%s' % os.path.join('HUP', 'origineel (niet aanpassen).xlsx') + os.pathsep + os.path.join('HUP'),
-    '--hidden-import=pandas',
-    '--hidden-import=pandas._libs.tslibs.timedeltas',
-    '--hidden-import=openpyxl',
-    '--hidden-import=flask',
-    '--hidden-import=pywebio',
-    '--icon=%s' % 'icon.ico' if os.path.exists('icon.ico') else None,
-    '--clean',
-])
-
-# Create necessary directories in the dist folder
-data_dir = os.path.join('dist', 'data')
-hup_dir = os.path.join('dist', 'HUP')
-
-for directory in [data_dir, hup_dir]:
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
-# Copy README and create a basic instruction document
-readme_content = """
-HUP Generator Tool
-=================
-
-Instructions:
-1. Run the HUP_Generator executable
-2. A browser window will open automatically with the application
-3. Upload your KRO data files through the web interface
-4. Select the desired filters and options
-5. Generate your HUP Excel file
-
-Output files will be saved in the 'HUP' folder next to the application.
-
-For more detailed information, please see the full README.md file.
+#!/usr/bin/env python3
+"""
+Build script for the HUP Generator application.
+Creates a standalone executable using PyInstaller.
 """
 
-with open(os.path.join('dist', 'Instructions.txt'), 'w') as f:
-    f.write(readme_content)
+import os
+import sys
+import shutil
+import subprocess
+import platform
+import argparse
+from pathlib import Path
 
-# Copy the README if it exists
-if os.path.exists('README.md'):
-    shutil.copy('README.md', os.path.join('dist', 'README.md'))
+def build_executable(target_platform=None, clean=True):
+    """
+    Build the HUP Generator executable.
+    
+    Args:
+        target_platform: Target platform ('macos' or 'windows')
+        clean: Whether to clean previous build files
+    """
+    if not target_platform:
+        target_platform = 'macos' if sys.platform == 'darwin' else 'windows'
+    
+    print(f"Building HUP Generator for platform: {target_platform}")
+    print(f"Current system: {platform.system()} {platform.machine()}")
+    
+    # Create resources directory if it doesn't exist
+    resources_dir = Path("resources")
+    resources_dir.mkdir(exist_ok=True)
+    
+    # Copy template file to resources if it exists in HUP directory
+    template_src = Path("HUP") / "origineel (niet aanpassen).xlsx"
+    template_dst = resources_dir / "origineel (niet aanpassen).xlsx"
+    
+    if template_src.exists():
+        print(f"Copying template from {template_src} to {template_dst}")
+        shutil.copy2(template_src, template_dst)
+    else:
+        print(f"Warning: Template file not found at {template_src}")
+        print("Please make sure the template exists before building.")
+        return 1
+    
+    # Clean previous build if requested
+    if clean:
+        for dir_to_clean in ['build', 'dist']:
+            if os.path.exists(dir_to_clean):
+                print(f"Cleaning {dir_to_clean} directory...")
+                shutil.rmtree(dir_to_clean)
+    
+    # Setup platform-specific configuration
+    if target_platform == 'macos':
+        # For macOS (including M1/ARM)
+        data_arg = "--add-data=resources/*:resources"
+        output_name = "HUP_Generator_macOS"
+        icon_file = "app_icon.icns" if Path("app_icon.icns").exists() else None
+    else:  # windows
+        # For Windows builds
+        data_arg = "--add-data=resources/*;resources"
+        output_name = "HUP_Generator_Win64"
+        icon_file = "app_icon.ico" if Path("app_icon.ico").exists() else None
+        
+        # Check if we're on macOS trying to build for Windows
+        if sys.platform == 'darwin':
+            print("Warning: Building Windows executables from macOS has limited support.")
+            print("For best results, build the Windows version on a Windows system.")
+            print("Continuing with best-effort build...")
 
-print(f"Application built successfully as {app_name}")
-print("You can find it in the 'dist' directory")
-print("\nThe following files and directories have been created:")
-print(f" - {app_name}.exe: The executable application")
-print(" - data: Directory for CSV data files")
-print(" - HUP: Directory for template and output files")
-print(" - Instructions.txt: Basic usage instructions")
+    # Base PyInstaller command
+    cmd = [
+        "pyinstaller",
+        "--onefile",
+        "--windowed",
+        data_arg,
+        f"--name={output_name}"
+    ]
+    
+    # Add icon if available
+    if icon_file:
+        cmd.append(f"--icon={icon_file}")
+    
+    # Add hidden imports that might be needed
+    cmd.extend(["--hidden-import=pandas", "--hidden-import=openpyxl"])
+    
+    # Add the main script
+    cmd.append("app.py")
+    
+    print("Running PyInstaller with command:", " ".join(cmd))
+    
+    try:
+        result = subprocess.run(cmd, check=True)
+        print(f"Build completed for {target_platform}. Executable can be found in the dist directory.")
+        return result.returncode
+    except subprocess.CalledProcessError as e:
+        print(f"Build failed with error: {e}")
+        return e.returncode
+
+def main():
+    """Main function to parse arguments and build executables."""
+    parser = argparse.ArgumentParser(description="Build HUP Generator executable")
+    parser.add_argument('--platform', choices=['macos', 'windows'], 
+                        help="Target platform (default: current platform)")
+    parser.add_argument('--no-clean', action='store_true', help="Don't clean previous build files")
+    
+    args = parser.parse_args()
+    
+    return build_executable(args.platform, not args.no_clean)
+
+if __name__ == "__main__":
+    sys.exit(main())

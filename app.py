@@ -54,9 +54,9 @@ def ui_file_upload() -> tuple:
     put_markdown("## Stap 1: Upload Gegevensbestanden")
     
     try:
-        # Section 1b: KRO-gebruik file upload - separate from aanzien
+        # Section 1a: KRO-gebruik file upload
         put_html('<div style="margin-top: 20px; margin-bottom: 10px; padding: 10px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">'
-                '<strong>1b. KRO-gebruik bestand:</strong> Selecteer het CSV bestand met KRO-gebruik gegevens</div>')
+                '<strong>1a. KRO-gebruik bestand:</strong> Selecteer het CSV bestand met KRO-gebruik gegevens</div>')
         
         gebruik_file = file_upload(
             label="", 
@@ -65,18 +65,23 @@ def ui_file_upload() -> tuple:
             placeholder="Kies KRO-gebruik CSV bestand..."
         )
         
-        # Process the gebruik file separately
+        # Process the gebruik file
         put_text("KRO-gebruik bestand verwerken...")
         try:
-            df_gebruik = load_data_from_content(gebruik_file['content'], gebruik_file['filename'])
+            # Modify load_data_from_content call to handle different delimiters
+            df_gebruik = load_data_from_content(
+                gebruik_file['content'], 
+                gebruik_file['filename'],
+                delimiters=[',', ';']  # Try both common CSV delimiters
+            )
             put_success(f"KRO-gebruik bestand succesvol geladen: {gebruik_file['filename']}")
         except Exception as e:
             put_error(f"Fout bij het laden van KRO-gebruik bestand: {str(e)}")
             return None, None
         
-        # Section 1a: KRO-aanzien file upload
+        # Section 1b: KRO-aanzien file upload
         put_html('<div style="margin-top: 15px; margin-bottom: 10px; padding: 10px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">'
-                '<strong>1a. KRO-aanzien bestand:</strong> Selecteer het CSV bestand met KRO-aanzien gegevens</div>')
+                '<strong>1b. KRO-aanzien bestand:</strong> Selecteer het CSV bestand met KRO-aanzien gegevens</div>')
         
         aanzien_file = file_upload(
             label="", 
@@ -85,10 +90,15 @@ def ui_file_upload() -> tuple:
             placeholder="Kies KRO-aanzien CSV bestand..."
         )
         
-        # Process the aanzien file immediately
+        # Process the aanzien file
         put_text("KRO-aanzien bestand verwerken...")
         try:
-            df_aanzien = load_data_from_content(aanzien_file['content'], aanzien_file['filename'])
+            # Modify load_data_from_content call to handle different delimiters
+            df_aanzien = load_data_from_content(
+                aanzien_file['content'], 
+                aanzien_file['filename'],
+                delimiters=[',', ';']  # Try both common CSV delimiters
+            )
             put_success(f"KRO-aanzien bestand succesvol geladen: {aanzien_file['filename']}")
         except Exception as e:
             put_error(f"Fout bij het laden van KRO-aanzien bestand: {str(e)}")
@@ -140,7 +150,9 @@ def ui_export_options() -> Dict[str, Any]:
         required=True
     )
     
-    template_path = get_executable_relative_path("HUP", "origineel (niet aanpassen).xlsx")
+    # Use get_resource_path for reading the template
+    from data_management import get_resource_path
+    template_path = get_resource_path(os.path.join("resources", "origineel (niet aanpassen).xlsx"))
     
     if template_selection == "custom":
         template_file = file_upload("Upload Excel-sjabloon:", accept=".xlsx", required=True)
@@ -164,7 +176,7 @@ def ui_export_options() -> Dict[str, Any]:
     
     return options
 
-def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_options: Dict[str, Any>) -> None:
+def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_options: Dict[str, Any]) -> None:
     """Process the data with selected filters and export to Excel."""
     put_markdown("## Verwerken en Genereren van de HUP")
     
