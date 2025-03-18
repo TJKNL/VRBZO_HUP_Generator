@@ -41,9 +41,12 @@ jobs:
           
       - name: Ensure HUP directory exists
         run: |
-          echo "Creating HUP directory and template file..."
-          mkdir -p HUP
-          echo "Placeholder template file for build" > "HUP/origineel (niet aanpassen).xlsx"
+          echo "Checking and creating HUP directory if needed..."
+          if (!(Test-Path -Path "HUP")) {
+            New-Item -Path "HUP" -ItemType Directory
+          }
+          echo "Creating placeholder template file for build..."
+          Set-Content -Path "HUP\origineel (niet aanpassen).xlsx" -Value "This is a placeholder"
           
       - name: Build Windows executable
         run: |
