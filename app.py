@@ -54,17 +54,7 @@ def ui_file_upload() -> tuple:
     put_markdown("## Stap 1: Upload Gegevensbestanden")
     
     try:
-        # More distinct sections for each file upload with clear instructions
-        put_html('<div style="margin-top: 15px; margin-bottom: 10px; padding: 10px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">'
-                '<strong>1a. KRO-aanzien bestand:</strong> Selecteer het CSV bestand met KRO-aanzien gegevens</div>')
-        
-        aanzien_file = file_upload(
-            label="", 
-            accept=".csv", 
-            required=True,
-            placeholder="Kies KRO-aanzien CSV bestand..."  # Custom button text
-        )
-        
+        # Section 1b: KRO-gebruik file upload - separate from aanzien
         put_html('<div style="margin-top: 20px; margin-bottom: 10px; padding: 10px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">'
                 '<strong>1b. KRO-gebruik bestand:</strong> Selecteer het CSV bestand met KRO-gebruik gegevens</div>')
         
@@ -72,21 +62,41 @@ def ui_file_upload() -> tuple:
             label="", 
             accept=".csv", 
             required=True,
-            placeholder="Kies KRO-gebruik CSV bestand..."  # Custom button text
+            placeholder="Kies KRO-gebruik CSV bestand..."
         )
         
-        with put_loading("Bestanden laden en verwerken..."):
-            try:
-                df_aanzien = load_data_from_content(aanzien_file['content'], aanzien_file['filename'])
-                df_gebruik = load_data_from_content(gebruik_file['content'], gebruik_file['filename'])
+        # Process the gebruik file separately
+        put_text("KRO-gebruik bestand verwerken...")
+        try:
+            df_gebruik = load_data_from_content(gebruik_file['content'], gebruik_file['filename'])
+            put_success(f"KRO-gebruik bestand succesvol geladen: {gebruik_file['filename']}")
+        except Exception as e:
+            put_error(f"Fout bij het laden van KRO-gebruik bestand: {str(e)}")
+            return None, None
+        
+        # Section 1a: KRO-aanzien file upload
+        put_html('<div style="margin-top: 15px; margin-bottom: 10px; padding: 10px; background-color: #e8f4f8; border-left: 4px solid #3498db; border-radius: 4px;">'
+                '<strong>1a. KRO-aanzien bestand:</strong> Selecteer het CSV bestand met KRO-aanzien gegevens</div>')
+        
+        aanzien_file = file_upload(
+            label="", 
+            accept=".csv", 
+            required=True,
+            placeholder="Kies KRO-aanzien CSV bestand..."
+        )
+        
+        # Process the aanzien file immediately
+        put_text("KRO-aanzien bestand verwerken...")
+        try:
+            df_aanzien = load_data_from_content(aanzien_file['content'], aanzien_file['filename'])
+            put_success(f"KRO-aanzien bestand succesvol geladen: {aanzien_file['filename']}")
+        except Exception as e:
+            put_error(f"Fout bij het laden van KRO-aanzien bestand: {str(e)}")
+            return None, None
+        
+        # Both files loaded successfully
+        return df_aanzien, df_gebruik
                 
-                put_success(f"Bestanden succesvol geladen: {aanzien_file['filename']} en {gebruik_file['filename']}")
-                return df_aanzien, df_gebruik
-                
-            except Exception as e:
-                put_error(f"Fout bij het laden van bestanden: {str(e)}")
-                put_text("Controleer of uw bestanden geldige CSV-bestanden zijn met de verwachte kolommen.")
-                return None, None
     except Exception as e:
         put_error(f"Fout tijdens bestandsupload: {str(e)}")
         return None, None
@@ -101,10 +111,15 @@ def ui_filter_selection() -> List[str]:
         for key, filter_def in FILTER_DEFINITIONS.items()
     ]
     
+    # Get all filter keys to pre-select them
+    all_filter_keys = list(FILTER_DEFINITIONS.keys())
+    
+    # Render checkboxes with all options pre-selected
     selected_filters = checkbox(
         "Selecteer welke filters u wilt toepassen:", 
         options=options,
-        required=True
+        required=True,
+        value=all_filter_keys  # Pre-select all filters
     )
     
     if not selected_filters:
@@ -149,54 +164,69 @@ def ui_export_options() -> Dict[str, Any]:
     
     return options
 
-def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_options: Dict[str, Any]) -> None:
+def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_options: Dict[str, Any>) -> None:
     """Process the data with selected filters and export to Excel."""
     put_markdown("## Verwerken en Genereren van de HUP")
     
+    # Initialize process bar
+    put_processbar('process_bar')
+    set_processbar('process_bar', 0)
+    
+    total_steps = len(selected_filters) + 1  # Filters + Excel export
+    current_step = 0
+    
     # Apply filters
-    with put_loading("Filters toepassen..."):
-        try:
-            for filter_key in selected_filters:
-                put_text(f"Filter toepassen: {FILTER_DEFINITIONS[filter_key]['name']}")
-                apply_filter_to_tree(tree, filter_key)
-        except Exception as e:
-            put_error(f"Fout bij het toepassen van filters: {str(e)}")
-            return
+    put_info("Filters toepassen...")
+    try:
+        for filter_key in selected_filters:
+            current_step += 1
+            put_text(f"Filter toepassen: {FILTER_DEFINITIONS[filter_key]['name']}")
+            apply_filter_to_tree(tree, filter_key)
+            set_processbar('process_bar', current_step / total_steps)
+    except Exception as e:
+        put_error(f"Fout bij het toepassen van filters: {str(e)}")
+        return
     
     # Export to Excel
-    with put_loading("Excel-bestand genereren..."):
-        try:
-            # Create output directory if it doesn't exist
-            output_dir = get_executable_relative_path("HUP")
-            os.makedirs(output_dir, exist_ok=True)
-            
-            datetime_string = datetime.now().strftime("%d-%m-%Y_%H-%M")
-            output_path = os.path.join(output_dir, f"HUP-{datetime_string}.xlsx")
-            
-            # Generate the Excel file
-            tree.insert_dataframe_into_excel(
-                export_options["template_path"],
-                "Controle objecten", 
-                2, 
-                add_A="add_A" in export_options["add_A"],
-                remove_no_name="remove_no_name" in export_options["remove_no_name"]
-            )
-            
-            put_success(f"Excel-bestand succesvol gegenereerd op: {output_path}")
-            
-            # Add a download button
-            put_text("U kunt het uitvoerbestand vinden op de volgende locatie:")
-            put_code(os.path.abspath(output_path))
-            
-        except FileNotFoundError as e:
-            put_error(f"Fout: Sjabloonbestand niet gevonden. Controleer of het sjabloon bestaat.")
-            put_text(f"Details: {str(e)}")
-        except PermissionError as e:
-            put_error(f"Fout: Toegang geweigerd bij het schrijven van uitvoerbestand.")
-            put_text(f"Details: {str(e)}")
-            put_text("Zorg ervoor dat u schrijfrechten heeft voor de uitvoermap en dat het bestand niet open is in een ander programma.")
-        except Exception as e:
-            put_error(f"Fout bij het genereren van Excel-bestand: {str(e)}")
+    put_info("Excel-bestand genereren...")
+    try:
+        # Create output directory if it doesn't exist
+        output_dir = get_executable_relative_path("HUP")
+        os.makedirs(output_dir, exist_ok=True)
+        
+        datetime_string = datetime.now().strftime("%d-%m-%Y_%H-%M")
+        output_path = os.path.join(output_dir, f"HUP-{datetime_string}.xlsx")
+        
+        # Generate the Excel file
+        tree.insert_dataframe_into_excel(
+            export_options["template_path"],
+            "Controle objecten", 
+            2, 
+            add_A="add_A" in export_options["add_A"],
+            remove_no_name="remove_no_name" in export_options["remove_no_name"]
+        )
+        
+        current_step += 1
+        set_processbar('process_bar', current_step / total_steps)
+        
+        put_success(f"Excel-bestand succesvol gegenereerd op: {output_path}")
+        
+        # Add a download button
+        put_text("U kunt het uitvoerbestand vinden op de volgende locatie:")
+        put_code(os.path.abspath(output_path))
+        
+    except FileNotFoundError as e:
+        put_error(f"Fout: Sjabloonbestand niet gevonden. Controleer of het sjabloon bestaat.")
+        put_text(f"Details: {str(e)}")
+    except PermissionError as e:
+        put_error(f"Fout: Toegang geweigerd bij het schrijven van uitvoerbestand.")
+        put_text(f"Details: {str(e)}")
+        put_text("Zorg ervoor dat u schrijfrechten heeft voor de uitvoermap en dat het bestand niet open is in een ander programma.")
+    except Exception as e:
+        put_error(f"Fout bij het genereren van Excel-bestand: {str(e)}")
+    
+    # Process completed
+    set_processbar('process_bar', 1)
 
 def main():
     """Main application flow."""
