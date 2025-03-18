@@ -1,18 +1,27 @@
-name: Build Executables
+name: Build HUP Generator
+run-name: Building HUP Generator Windows executable
 
 on:
   push:
     tags:
       - 'v*'  # Run on version tags
+  workflow_dispatch:  # Enable manual triggering
+    inputs:
+      create_release:
+        description: 'Create a new release'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4  # Updated to v4
+      - name: Checkout code
+        uses: actions/checkout@v4
       
       - name: Set up Python 3.9
-        uses: actions/setup-python@v4  # Updated to v4
+        uses: actions/setup-python@v4
         with:
           python-version: 3.9
           
@@ -26,33 +35,42 @@ jobs:
           
       - name: Install dependencies
         run: |
+          echo "Installing Python dependencies..."
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
       - name: Ensure HUP directory exists
         run: |
+          echo "Creating HUP directory and template file..."
           mkdir -p HUP
-          echo "Creating placeholder template file for build"
-          echo "This is a placeholder" > "HUP/origineel (niet aanpassen).xlsx"
+          echo "Placeholder template file for build" > "HUP/origineel (niet aanpassen).xlsx"
           
       - name: Build Windows executable
-        run: python build_app.py
+        run: |
+          echo "Building Windows executable..."
+          python build_app.py
+          echo "Build completed"
+        
+      - name: List generated files
+        run: |
+          echo "Files in dist directory:"
+          ls dist
         
       - name: Upload artifact
-        uses: actions/upload-artifact@v4  # Updated to v4
+        uses: actions/upload-artifact@v4
         with:
           name: HUP_Generator_Windows
           path: dist/*.exe
           
       - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.create_release == 'true'
         uses: softprops/action-gh-release@v1
         with:
           files: dist/*.exe
           draft: true
-          name: HUP Generator ${{ github.ref_name }}
+          name: HUP Generator ${{ github.ref_name || format('Build-{0}', github.run_number) }}
           body: |
-            HUP Generator version ${{ github.ref_name }}
+            HUP Generator ${{ startsWith(github.ref, 'refs/tags/') && format('version {0}', github.ref_name) || format('build #{0}', github.run_number) }}
             
             Windows executable built automatically.
             
