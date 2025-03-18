@@ -13,6 +13,11 @@ on:
         default: false
         type: boolean
 
+# Add permissions needed for creating releases
+permissions:
+  contents: write  # This is required for creating releases
+  packages: read
+
 jobs:
   build-windows:
     runs-on: windows-latest
