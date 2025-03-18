@@ -1,0 +1,11 @@
+      - name: Check for template file
+        run: |
+          echo "Checking for template file..."
+          if (!(Test-Path -Path "resources\origineel (niet aanpassen).xlsx")) {
+            echo "Template file not found in resources directory. Creating placeholder..."
+            mkdir -p resources
+            echo "Creating placeholder Excel file (Note: This is not a valid Excel file)"
+            Set-Content -Path "resources\origineel (niet aanpassen).xlsx" -Value "Placeholder"
+          } else {
+            echo "Template file found in resources directory."
+          }
