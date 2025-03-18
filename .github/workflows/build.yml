@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-      - name: Check for template file
-        run: |
-          echo "Checking for template file..."
-          if (!(Test-Path -Path "resources\origineel (niet aanpassen).xlsx")) {
-            echo "Template file not found in resources directory. Creating placeholder..."
-            mkdir -p resources
-            echo "Creating placeholder Excel file (Note: This is not a valid Excel file)"
-            Set-Content -Path "resources\origineel (niet aanpassen).xlsx" -Value "Placeholder"
-          } else {
-            echo "Template file found in resources directory."
-          }
-=======
 name: Build HUP Generator
 run-name: Building HUP Generator Windows executable
 
@@ -52,14 +39,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           
-      - name: Ensure HUP directory exists
+      - name: Check for template file
         run: |
-          echo "Checking and creating HUP directory if needed..."
-          if (!(Test-Path -Path "HUP")) {
-            New-Item -Path "HUP" -ItemType Directory
+          echo "Checking for template file..."
+          if (!(Test-Path -Path "resources\origineel (niet aanpassen).xlsx")) {
+            echo "Template file not found in resources directory. Creating placeholder..."
+            if (!(Test-Path -Path "resources")) {
+              New-Item -Path "resources" -ItemType Directory
+            }
+            echo "Creating placeholder Excel file (Note: This is not a valid Excel file)"
+            Set-Content -Path "resources\origineel (niet aanpassen).xlsx" -Value "Placeholder"
+          } else {
+            echo "Template file found in resources directory."
           }
-          echo "Creating placeholder template file for build..."
-          Set-Content -Path "HUP\origineel (niet aanpassen).xlsx" -Value "This is a placeholder"
           
       - name: Build Windows executable
         run: |
@@ -95,4 +87,3 @@ jobs:
             Download the .exe file and run it directly.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
->>>>>>> ab763309b4565676bf660513dd63e2b89ff32a7e
