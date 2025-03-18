@@ -1,49 +1,109 @@
-# VRBZO HUP Generator
+# HUP Generator Tool
 
-This package provides a solution for generating a new HUP (Handhaving Uitvoerings Programma) for the VRBZO (Veiligheidsregio Brabant-Zuidoost) project exectued by me under the name of ClickLogic. Please see the **Handleiding.pdf** for a easy to read (Dutch) manual for the product.
+Een tool voor het genereren van Handhavings Uitvoerings Programma (HUP) bestanden op basis van KRO-gegevens.
 
-## Note
-This repository is a cleaned-up version of the original repository used during development. In the spirit of opensource development compromising or proprietary information has been removed to allow public publishing. Please contact me if you need access to the original repo. 
+## Features
 
-## Branches
+- Web-based user interface for easy data upload and configuration
+- Automatic CSV delimiter detection
+- Predefined filters for different building types
+- Excel export with customizable options
+- Standalone executable that doesn't require Python installation
 
-- **main branch**: Contains all files necessary for local development, including context information about the project.
-- **production branch**: Intended for deployment and distribution purposes. Made obsolete by Releases.
+## Vereisten voor ontwikkeling
 
-## How it Works
+- Python 3.8+
+- Externe bibliotheken (zie `requirements.txt`)
 
-The VRBZO HUP Generator follows a specific workflow for generating and distributing the HUP. Here are the steps involved:
+## Installatie (ontwikkeling)
 
-1. **Development**: Start with the `main` branch for development. This branch contains all the required files and context information related to the project. Perform local development and testing using this branch.
+1. Clone de repository
+2. Installeer de vereiste packages:
 
-2. **Generate Executable**: When ready to compile the project, generate a new executable using the development environment. This executable is named "main" and is the result of compiling the project.
+```bash
+pip install -r requirements.txt
+```
 
-3. **Production Branch**: Switch to the `production` branch. This branch serves as the production-ready branch and is meant for distribution and use.
+3. Zorg dat het Excel-sjabloon aanwezig is in de `HUP` map:
+   - Bestandsnaam: `origineel (niet aanpassen).xlsx`
 
-4. **Copy Executable**: Copy the compiled executable file (named "main") from the development environment and place it in the `production` branch. This ensures that the latest version of the executable is available for distribution.
+## Gebruik (ontwikkeling)
 
-5. **Distribution**: Distribute the `production` branch to the intended users. No need to have python installed, just share the folder. Make sure that it is a main folder with two sub folder namely data and HUP. The new HUP will be output in the HUP folder. Source data should be placed in the data folder with names like this: "KRO-aanzien-R22.csv" & "KRO-gebruik-R22_zonder-contact.csv". This can be changed in the original Python file main.py. 
+Start de applicatie vanuit de hoofdmap:
 
-By following this workflow, you can easily manage the development and deployment of the VRBZO HUP Generator.
+```bash
+python app.py
+```
+
+## Maken van een standalone executable
+
+Je kunt een standalone executable maken met behulp van PyInstaller:
+
+```bash
+# Standaard build (64-bit op moderne systemen)
+python build_app.py
+
+# Specifieke architectuur bouwen (alleen Windows)
+python build_app.py --arch x64  # 64-bit executable
+python build_app.py --arch x86  # 32-bit executable
+
+# Beide architecturen bouwen (alleen Windows)
+python build_app.py --arch both
+```
+
+Voor het bouwen van een 32-bit (x86) versie is een 32-bit Python-installatie nodig.
+
+Dit creëert een executable in de `dist` map die zonder Python-installatie kan worden uitgevoerd.
+
+## Cross-Platform Builds
+
+### Building on M1 Mac
+
+```bash
+# Build for macOS (default)
+python build_app.py
+
+# Attempt best-effort Windows build (limited support)
+python build_app.py --platform windows
+```
+
+⚠️ **Note about Windows builds**: Building Windows executables from macOS has limitations:
+
+1. For the most reliable Windows build, use a Windows system or VM.
+2. Building from Mac M1 for Windows will attempt a best-effort build, but:
+   - The executable may not include all required dependencies
+   - It may not work properly on all Windows systems
+
+For production Windows builds, consider:
+- Using a Windows virtual machine
+- Setting up a CI/CD pipeline on GitHub Actions with Windows runners
+- Using a Windows machine for the final build
 
 ## Usage
 
-To use the VRBZO HUP Generator, follow these steps:
+1. **Upload Data Files**:
+   - Upload de KRO-gebruik CSV file
+   - Upload de KRO-aanzien CSV file
 
-1. Clone or download the `production` branch to your local environment. Or more easily, get the executable from Releases!
+2. **Select Filters**:
+   - Kies welke filters je wilt toepassen
 
-2. Run the executable file named "HUP_Generator" to generate the new HUP. See the required file structure in point 5 in the "How it Works" section above.
+3. **Configure Output**:
+   - Selecteer of je het ingebouwde Excel-sjabloon wilt gebruiken of een aangepast sjabloon wilt uploaden
+   - Kies extra opties zoals het verwijderen van items zonder namen
 
-3. Distribute the generated HUP file to the appropriate stakeholders as per your project requirements.
+4. **Generate Output**:
+   - De applicatie verwerkt de gegevens en genereert een Excel-bestand
+   - De locatie van het uitvoerbestand wordt weergegeven
 
+## Project Structure
 
+- `app.py`: Hoofd-applicatiecode met UI
+- `data_management.py`: Functies voor gegevensbeheer en filtering
+- `classes.py`: Klasse-definities voor het gegevensmodel
+- `build_app.py`: Script om de standalone executable te maken
+- `HUP/`: Directory met Excel-sjablonen
 
 ## License
 
-This project is licensed under the MIT License.
-
-Feel free to explore the provided branches and use the VRBZO HUP Generator for your specific needs.
-
-If you encounter any issues or have questions, please don't hesitate to reach out.
-
-Happy generating!
+[Insert License Information]

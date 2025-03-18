@@ -9,3 +9,7 @@ HUP/.DS_Store
 __pycache__
 HUP
 Archive/
+data/
+build/
+dist/
+resources/
