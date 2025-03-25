@@ -114,23 +114,50 @@ def get_resource_path(relative_path):
 def get_executable_relative_path(*path_parts):
     """
     Generate a file path relative to the executable. For output files that need to be written.
+    Handles Windows permissions by using appropriate writable locations.
     
     Args:
         path_parts: Path components to join with the base directory
         
     Returns:
-        Absolute path relative to the executable
+        Absolute path relative to the executable or a fallback user-writable path
     """
-    # When frozen, use the directory containing the executable
-    if getattr(sys, 'frozen', False):
-        base_dir = os.path.dirname(sys.executable)
-    else:
-        # In development mode, use the script's directory
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+    try:
+        # When frozen, use the directory containing the executable
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+            
+            # On Windows, test if we can write to this directory
+            if sys.platform == 'win32':
+                test_path = os.path.join(base_dir, "write_test.tmp")
+                try:
+                    with open(test_path, 'w') as f:
+                        f.write("test")
+                    os.remove(test_path)
+                except (PermissionError, OSError):
+                    # Fallback to user's Documents folder if we can't write to executable directory
+                    print("Cannot write to application directory, using Documents folder instead")
+                    base_dir = os.path.join(os.path.expanduser("~"), "Documents", "HUP Generator")
+                    os.makedirs(base_dir, exist_ok=True)
+        else:
+            # In development mode, use the script's directory
+            base_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # Generate a file path relative to this directory
-    path = os.path.join(base_dir, *path_parts)
-    return path
+        # Generate a file path relative to this directory
+        path = os.path.join(base_dir, *path_parts)
+        
+        # Ensure the directory exists
+        dir_path = os.path.dirname(path)
+        os.makedirs(dir_path, exist_ok=True)
+        
+        return path
+    except Exception as e:
+        # Ultimate fallback - use temp directory
+        print(f"Error creating path: {e}")
+        import tempfile
+        temp_dir = os.path.join(tempfile.gettempdir(), "HUP Generator")
+        os.makedirs(temp_dir, exist_ok=True)
+        return os.path.join(temp_dir, *path_parts)
 
 # Filter definitions for the application
 FILTER_DEFINITIONS = {

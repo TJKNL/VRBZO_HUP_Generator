@@ -221,12 +221,25 @@ def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_op
         current_step += 1
         set_processbar('process_bar', current_step / total_steps)
         
-        put_success(f"Excel-bestand succesvol gegenereerd op: {output_path}")
-        
-        # Add a download button
-        put_text("U kunt het uitvoerbestand vinden op de volgende locatie:")
-        put_code(os.path.abspath(output_path))
-        
+        # Verify the file was actually created
+        if os.path.exists(output_path):
+            put_success(f"Excel-bestand succesvol gegenereerd op: {output_path}")
+            
+            # Add a download button
+            put_text("U kunt het uitvoerbestand vinden op de volgende locatie:")
+            put_code(os.path.abspath(output_path))
+            
+            # Add a button to open the containing folder
+            if sys.platform == 'win32':
+                put_button("Open bestandslocatie", onclick=lambda: run_js(f'window.open("file:///{os.path.dirname(os.path.abspath(output_path)).replace("\\", "/")}", "_blank")'))
+            else:
+                put_button("Open bestandslocatie", onclick=lambda: os.system(f'open "{os.path.dirname(os.path.abspath(output_path))}"'))
+        else:
+            put_warning(f"Het bestand lijkt te zijn gegenereerd, maar kan niet worden gevonden op: {output_path}")
+            put_text("Dit kan gebeuren vanwege Windowspermissies. Zoek in de volgende locaties:")
+            put_code(os.path.abspath(output_path))
+            put_code(os.path.join(os.path.expanduser("~"), "Documents", "HUP Generator", "HUP", f"HUP-{datetime_string}.xlsx"))
+            put_code(os.path.join(tempfile.gettempdir(), "HUP Generator", "HUP", f"HUP-{datetime_string}.xlsx"))
     except FileNotFoundError as e:
         put_error(f"Fout: Sjabloonbestand niet gevonden. Controleer of het sjabloon bestaat.")
         put_text(f"Details: {str(e)}")
