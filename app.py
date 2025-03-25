@@ -229,9 +229,11 @@ def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_op
             put_text("U kunt het uitvoerbestand vinden op de volgende locatie:")
             put_code(os.path.abspath(output_path))
             
-            # Add a button to open the containing folder
+            # Add a button to open the containing folder - fixed f-string with backslash issue
             if sys.platform == 'win32':
-                put_button("Open bestandslocatie", onclick=lambda: run_js(f'window.open("file:///{os.path.dirname(os.path.abspath(output_path)).replace("\\", "/")}", "_blank")'))
+                # Fix: Pre-process the path to avoid backslash in f-string
+                folder_path = os.path.dirname(os.path.abspath(output_path)).replace("\\", "/")
+                put_button("Open bestandslocatie", onclick=lambda: run_js(f'window.open("file:///{folder_path}", "_blank")'))
             else:
                 put_button("Open bestandslocatie", onclick=lambda: os.system(f'open "{os.path.dirname(os.path.abspath(output_path))}"'))
         else:
