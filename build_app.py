@@ -12,18 +12,20 @@ import platform
 import argparse
 from pathlib import Path
 
-def build_executable(target_platform=None, clean=True):
+def build_executable(target_platform=None, clean=True, console=True):
     """
     Build the HUP Generator executable.
     
     Args:
         target_platform: Target platform ('macos' or 'windows')
         clean: Whether to clean previous build files
+        console: Whether to include a console window (default: True)
     """
     if not target_platform:
         target_platform = 'macos' if sys.platform == 'darwin' else 'windows'
     
     print(f"Building HUP Generator for platform: {target_platform}")
+    print(f"Console window: {'Enabled' if console else 'Disabled'}")
     print(f"Current system: {platform.system()} {platform.machine()}")
     
     # Create resources directory if it doesn't exist
@@ -71,10 +73,21 @@ def build_executable(target_platform=None, clean=True):
     cmd = [
         "pyinstaller",
         "--onefile",
-        "--windowed",
-        data_arg,
-        f"--name={output_name}"
     ]
+    
+    # Include console window by default, unless disabled
+    if console:
+        cmd.append("--console")
+        output_suffix = ""  # No suffix for standard build
+    else:
+        cmd.append("--windowed")
+        output_suffix = "_gui"  # Add suffix for GUI-only version
+    
+    # Add data and name arguments
+    cmd.extend([
+        data_arg,
+        f"--name={output_name}{output_suffix}"
+    ])
     
     # Add icon if available
     if icon_file:
@@ -102,10 +115,11 @@ def main():
     parser.add_argument('--platform', choices=['macos', 'windows'], 
                         help="Target platform (default: current platform)")
     parser.add_argument('--no-clean', action='store_true', help="Don't clean previous build files")
+    parser.add_argument('--no-console', action='store_true', help="Build without console window (GUI only)")
     
     args = parser.parse_args()
     
-    return build_executable(args.platform, not args.no_clean)
+    return build_executable(args.platform, not args.no_clean, not args.no_console)
 
 if __name__ == "__main__":
     sys.exit(main())

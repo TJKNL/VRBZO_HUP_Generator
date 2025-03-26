@@ -40,20 +40,14 @@ python app.py
 Je kunt een standalone executable maken met behulp van PyInstaller:
 
 ```bash
-# Standaard build (64-bit op moderne systemen)
+# Standaard build met console window
 python build_app.py
 
-# Specifieke architectuur bouwen (alleen Windows)
-python build_app.py --arch x64  # 64-bit executable
-python build_app.py --arch x86  # 32-bit executable
-
-# Beide architecturen bouwen (alleen Windows)
-python build_app.py --arch both
+# Build zonder console window (alleen GUI)
+python build_app.py --no-console
 ```
 
-Voor het bouwen van een 32-bit (x86) versie is een 32-bit Python-installatie nodig.
-
-Dit creëert een executable in de `dist` map die zonder Python-installatie kan worden uitgevoerd.
+Dit creëert een executable in de `dist` map.
 
 ## Cross-Platform Builds
 
@@ -78,6 +72,17 @@ For production Windows builds, consider:
 - Using a Windows virtual machine
 - Setting up a CI/CD pipeline on GitHub Actions with Windows runners
 - Using a Windows machine for the final build
+
+## Debugging
+
+For debugging purposes, you can build a version with a console window:
+
+```bash
+# Build with console window for debugging output
+python build_app.py --debug
+```
+
+This creates an executable with "_debug" suffix that shows a console window with logging output when running.
 
 ## Usage
 
