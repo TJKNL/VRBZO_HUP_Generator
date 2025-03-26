@@ -64,14 +64,18 @@ class KRO_Tree:
                 # print(
                 #    f"bronsleutel: {bronsleutel} does not have a match in data_gebruik, so the filter condition is deemed true.")
 
-        # Log the filter operation in history
+        # Log the filter operation in history - FIX: use dictionary format like other methods
         original_rows = len(self.data_aanzien)
         self.data_aanzien = self.data_aanzien[self.data_aanzien['bronsleutel'].isin(valid_bronsleutel)]
         filtered_rows = len(self.data_aanzien)
         removed_rows = original_rows - filtered_rows
         print("")
         print(f"Filtering on Personen {operator} {value}")
-        self.history.append(f"Removed {removed_rows} rows, {filtered_rows} rows remaining.")
+        
+        # Fix: use dictionary format for history
+        self.history.append({"action": f"filter Personen {operator} {value}", 
+                            "rows_removed": removed_rows, 
+                            "rows_remaining": filtered_rows})
 
         print(f"Removed {removed_rows} rows, {filtered_rows} rows remaining.")
 
@@ -192,7 +196,11 @@ class KRO_Tree:
             self.data_aanzien = self.data_aanzien[self.data_aanzien['bronsleutel'].isin(valid_aanzien_id)]
             filtered_rows = len(self.data_aanzien)
             removed_rows = original_rows - filtered_rows
-            self.history.append(f"Removed {removed_rows} rows, {filtered_rows} rows remaining.")
+            
+            # Fix: use dictionary format for consistency
+            self.history.append({"action": f"filter SBI starting with {start_nums}", 
+                                "rows_removed": removed_rows, 
+                                "rows_remaining": filtered_rows})
 
             print(f"Filtering on act1code starting with {start_nums}")
             print(f"Removed {removed_rows} rows, {filtered_rows} rows remaining.")
@@ -268,7 +276,21 @@ class KRO_Tree:
         # New columns can be added here
         return new_df
 
-    def insert_dataframe_into_excel(self, template_path, sheet_name, start_row, add_A=False, remove_no_name=False):
+    def insert_dataframe_into_excel(self, template_path, sheet_name, start_row, output_path=None, add_A=False, remove_no_name=False):
+        """
+        Insert dataframe into excel template at specified location.
+        
+        Args:
+            template_path: Path to the Excel template
+            sheet_name: Name of the sheet to insert data into
+            start_row: Row number to start inserting data
+            output_path: Optional path for the output file, if None a path will be generated
+            add_A: Whether to include risk class A items
+            remove_no_name: Whether to remove items without a name
+            
+        Returns:
+            Path to the saved Excel file
+        """
         df = self.prepare_dataframe(add_A)
 
         if remove_no_name:
@@ -293,13 +315,16 @@ class KRO_Tree:
                 # Insert the value into the cell
                 sheet.cell(row=r_idx, column=c_idx, value=value)
 
-        # Prepare the new file name with date and time
-        dir_name = os.path.dirname(template_path)
-        base_name = os.path.basename(template_path)
-        file_name, _ = os.path.splitext(base_name)
-        datetime_string = datetime.now().strftime("%d-%m-%Y_%H-%M")
-        new_file_name = get_executable_relative_path(dir_name,
-                                                     f"HUP-{datetime_string}.xlsx")  # Could use filename variable.
-        # Save the workbook with a new name
-        workbook.save(filename=new_file_name)
-        print(f"Saved to {new_file_name}")
+        # Use the provided output_path if given, otherwise create one
+        if output_path is None:
+            # Prepare the new file name with date and time
+            datetime_string = datetime.now().strftime("%d-%m-%Y_%H-%M")
+            output_path = get_executable_relative_path("HUP", f"HUP-{datetime_string}.xlsx")
+        
+        # Make sure the directory exists
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        
+        # Save the workbook
+        workbook.save(output_path)
+        print(f"Saved to {output_path}")
+        return output_path

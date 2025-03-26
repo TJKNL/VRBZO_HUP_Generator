@@ -122,39 +122,73 @@ def get_executable_relative_path(*path_parts):
     Returns:
         Absolute path relative to the executable or a fallback user-writable path
     """
-    try:
-        # When frozen, use the directory containing the executable
-        if getattr(sys, 'frozen', False):
-            base_dir = os.path.dirname(sys.executable)
-            
-            # On Windows, test if we can write to this directory
-            if sys.platform == 'win32':
-                test_path = os.path.join(base_dir, "write_test.tmp")
-                try:
-                    with open(test_path, 'w') as f:
-                        f.write("test")
-                    os.remove(test_path)
-                except (PermissionError, OSError):
-                    # Fallback to user's Documents folder if we can't write to executable directory
-                    print("Cannot write to application directory, using Documents folder instead")
-                    base_dir = os.path.join(os.path.expanduser("~"), "Documents", "HUP Generator")
-                    os.makedirs(base_dir, exist_ok=True)
-        else:
-            # In development mode, use the script's directory
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Generate a file path relative to this directory
-        path = os.path.join(base_dir, *path_parts)
-        
-        # Ensure the directory exists
+    global _output_base_dir  # Use a global to remember which directory worked
+    
+    if '_output_base_dir' not in globals():
+        _output_base_dir = None
+    
+    # If we already found a working directory, use it
+    if _output_base_dir is not None:
+        path = os.path.join(_output_base_dir, *path_parts)
         dir_path = os.path.dirname(path)
         os.makedirs(dir_path, exist_ok=True)
-        
         return path
-    except Exception as e:
+    
+    try:
+        # First try: Executable directory
+        if getattr(sys, 'frozen', False):
+            base_dir = os.path.dirname(sys.executable)
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Test if we can write to this directory
+        test_path = os.path.join(base_dir, "write_test.tmp")
+        try:
+            with open(test_path, 'w') as f:
+                f.write("test")
+            os.remove(test_path)
+            _output_base_dir = base_dir  # Remember this directory worked
+            print(f"Using application directory for output: {base_dir}")
+        except (PermissionError, OSError):
+            # Can't write here, fall through to next attempt
+            pass
+        
+        # If first try failed and not already set, try Documents folder
+        if _output_base_dir is None:
+            docs_dir = os.path.join(os.path.expanduser("~"), "Documents", "HUP Generator")
+            os.makedirs(docs_dir, exist_ok=True)
+            test_path = os.path.join(docs_dir, "write_test.tmp")
+            try:
+                with open(test_path, 'w') as f:
+                    f.write("test")
+                os.remove(test_path)
+                _output_base_dir = docs_dir  # Remember this directory worked
+                print(f"Using Documents folder for output: {docs_dir}")
+            except (PermissionError, OSError):
+                # Still can't write, fall through to fallback
+                pass
+        
+        # If we found a working directory, use it
+        if _output_base_dir is not None:
+            path = os.path.join(_output_base_dir, *path_parts)
+            dir_path = os.path.dirname(path)
+            os.makedirs(dir_path, exist_ok=True)
+            return path
+            
         # Ultimate fallback - use temp directory
+        temp_dir = os.path.join(tempfile.gettempdir(), "HUP Generator")
+        os.makedirs(temp_dir, exist_ok=True)
+        _output_base_dir = temp_dir  # Remember this as last resort
+        print(f"Using temporary directory for output: {temp_dir}")
+        
+        path = os.path.join(temp_dir, *path_parts)
+        dir_path = os.path.dirname(path)
+        os.makedirs(dir_path, exist_ok=True)
+        return path
+        
+    except Exception as e:
         print(f"Error creating path: {e}")
-        import tempfile
+        # Final fallback if everything else fails
         temp_dir = os.path.join(tempfile.gettempdir(), "HUP Generator")
         os.makedirs(temp_dir, exist_ok=True)
         return os.path.join(temp_dir, *path_parts)

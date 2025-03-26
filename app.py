@@ -4,6 +4,7 @@ import time
 import threading
 import webbrowser
 import argparse
+import signal
 from datetime import datetime
 import tempfile
 from typing import List, Dict, Any
@@ -13,7 +14,8 @@ from pywebio.platform.flask import start_server
 from pywebio import start_server as start_pywebio_server
 from pywebio.input import *
 from pywebio.output import *
-from pywebio.session import set_env, info as session_info, run_js
+from pywebio.session import set_env, info as session_info, run_js, register_thread, defer_call
+from pywebio.session import get_current_session
 
 # Local imports
 from data_management import (
@@ -207,13 +209,15 @@ def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_op
         os.makedirs(output_dir, exist_ok=True)
         
         datetime_string = datetime.now().strftime("%d-%m-%Y_%H-%M")
-        output_path = os.path.join(output_dir, f"HUP-{datetime_string}.xlsx")
+        output_filename = f"HUP-{datetime_string}.xlsx"
+        output_path = os.path.join(output_dir, output_filename)
         
         # Generate the Excel file
         tree.insert_dataframe_into_excel(
             export_options["template_path"],
             "Controle objecten", 
             2, 
+            output_path=output_path,
             add_A="add_A" in export_options["add_A"],
             remove_no_name="remove_no_name" in export_options["remove_no_name"]
         )
@@ -223,25 +227,66 @@ def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_op
         
         # Verify the file was actually created
         if os.path.exists(output_path):
-            put_success(f"Excel-bestand succesvol gegenereerd op: {output_path}")
+            put_success(f"Excel-bestand succesvol gegenereerd!")
             
-            # Add a download button
-            put_text("U kunt het uitvoerbestand vinden op de volgende locatie:")
-            put_code(os.path.abspath(output_path))
+            # Display file info with simple access options
+            put_html(f"""
+            <div style="margin-top: 15px; padding: 15px; background-color: #d4edda; border-radius: 5px;">
+                <h4>📊 Uw HUP-bestand is gereed</h4>
+                <p><b>Bestandsnaam:</b> {output_filename}</p>
+                <p><b>Locatie:</b> {os.path.abspath(output_path)}</p>
+            </div>
+            """)
             
-            # Add a button to open the containing folder - fixed f-string with backslash issue
-            if sys.platform == 'win32':
-                # Fix: Pre-process the path to avoid backslash in f-string
-                folder_path = os.path.dirname(os.path.abspath(output_path)).replace("\\", "/")
-                put_button("Open bestandslocatie", onclick=lambda: run_js(f'window.open("file:///{folder_path}", "_blank")'))
-            else:
-                put_button("Open bestandslocatie", onclick=lambda: os.system(f'open "{os.path.dirname(os.path.abspath(output_path))}"'))
+            # Create buttons for easy file access
+            put_html('<div style="margin-top: 10px; margin-bottom: 20px;">')
+            put_row([
+                put_button("📁 Open Map", onclick=lambda: open_file_location(output_path), color='info'),
+                put_button("💾 Download Bestand", onclick=lambda: download_file(output_path), color='primary'),
+            ], size='40% 40%')
+            put_html('</div>')
+            
+            put_info("Tip: Als u het bestand niet kunt vinden, gebruik dan de knoppen hierboven om het te openen of te downloaden.")
         else:
-            put_warning(f"Het bestand lijkt te zijn gegenereerd, maar kan niet worden gevonden op: {output_path}")
-            put_text("Dit kan gebeuren vanwege Windowspermissies. Zoek in de volgende locaties:")
-            put_code(os.path.abspath(output_path))
-            put_code(os.path.join(os.path.expanduser("~"), "Documents", "HUP Generator", "HUP", f"HUP-{datetime_string}.xlsx"))
-            put_code(os.path.join(tempfile.gettempdir(), "HUP Generator", "HUP", f"HUP-{datetime_string}.xlsx"))
+            # Check alternative locations
+            possible_locations = [
+                os.path.abspath(output_path),
+                os.path.join(os.path.expanduser("~"), "Documents", "HUP Generator", "HUP", output_filename),
+                os.path.join(tempfile.gettempdir(), "HUP Generator", "HUP", output_filename)
+            ]
+            
+            found_location = None
+            for loc in possible_locations:
+                if os.path.exists(loc):
+                    found_location = loc
+                    break
+            
+            if found_location:
+                put_success("Excel-bestand succesvol gegenereerd!")
+                
+                put_html(f"""
+                <div style="margin-top: 15px; padding: 15px; background-color: #d4edda; border-radius: 5px;">
+                    <h4>📊 Uw HUP-bestand is gereed</h4>
+                    <p><b>Bestandsnaam:</b> {os.path.basename(found_location)}</p>
+                    <p><b>Locatie:</b> {found_location}</p>
+                </div>
+                """)
+                
+                put_row([
+                    put_button("📁 Open Map", onclick=lambda: open_file_location(found_location), color='info'),
+                    put_button("💾 Download Bestand", onclick=lambda: download_file(found_location), color='primary'),
+                ], size='40% 40%')
+            else:
+                put_warning("Het bestand kon niet worden gevonden op de verwachte locatie.")
+                put_text("Dit kan gebeuren als er problemen zijn met schrijfrechten op uw computer.")
+                put_text("Probeer het volgende:")
+                put_html("""
+                <ol>
+                  <li>Controleer of u rechten heeft om bestanden op te slaan op uw computer</li>
+                  <li>Probeer de toepassing vanuit een andere map te starten</li>
+                  <li>Probeer handmatig een map 'HUP' aan te maken naast de applicatie</li>
+                </ol>
+                """)
     except FileNotFoundError as e:
         put_error(f"Fout: Sjabloonbestand niet gevonden. Controleer of het sjabloon bestaat.")
         put_text(f"Details: {str(e)}")
@@ -254,6 +299,40 @@ def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_op
     
     # Process completed
     set_processbar('process_bar', 1)
+
+def open_file_location(file_path):
+    """Open the folder containing the specified file."""
+    folder_path = os.path.dirname(os.path.abspath(file_path))
+    
+    if sys.platform == 'win32':
+        # For Windows - open Explorer
+        folder_path_escaped = folder_path.replace("\\", "/")
+        run_js(f'window.open("file:///{folder_path_escaped}", "_blank")')
+        # Alternative method using os.startfile if JS doesn't work
+        try:
+            os.startfile(folder_path)
+        except:
+            pass
+    elif sys.platform == 'darwin':
+        # For macOS - use open command
+        os.system(f'open "{folder_path}"')
+    else:
+        # For Linux - use xdg-open
+        os.system(f'xdg-open "{folder_path}"')
+
+def download_file(file_path):
+    """Create a download link for the file."""
+    if os.path.exists(file_path):
+        filename = os.path.basename(file_path)
+        try:
+            with open(file_path, 'rb') as file:
+                content = file.read()
+                put_file(filename, content)
+        except Exception as e:
+            put_error(f"Kan bestand niet downloaden: {str(e)}")
+            put_text("Open de bestandslocatie en kopieer het bestand handmatig.")
+    else:
+        put_error("Bestand niet gevonden om te downloaden.")
 
 def main():
     """Main application flow."""
@@ -342,8 +421,17 @@ def setup_app_launcher():
         print("="*50)
         print(f"De applicatie draait op: http://localhost:{args.port}")
         print("Als de browser niet automatisch opent, open dan handmatig de URL.")
-        print("Druk op Ctrl+C om de applicatie af te sluiten.")
+        print("Sluit dit venster om de applicatie af te sluiten.")
+        print("HUP-bestanden worden opgeslagen in de map 'HUP' naast de applicatie")
+        print("of in 'Documenten/HUP Generator/HUP' als er geen schrijfrechten zijn.")
         print("="*50)
+        
+        # Simplify signal handling
+        if hasattr(signal, 'SIGINT'):
+            try:
+                signal.signal(signal.SIGINT, lambda sig, frame: sys.exit(0))
+            except:
+                pass
         
         # Start the pywebio server
         start_pywebio_server(main, port=args.port, debug=False)
