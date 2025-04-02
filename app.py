@@ -118,10 +118,19 @@ def ui_filter_selection() -> List[str]:
     put_markdown("## Stap 2: Selecteer Filters")
     
     # Create user-friendly options from filter definitions
-    options = [
-        {"label": f"{filter_def['name']} ({filter_def['description']})", "value": key}
-        for key, filter_def in FILTER_DEFINITIONS.items()
-    ]
+    options = []
+    for key, filter_def in FILTER_DEFINITIONS.items():
+        risk = filter_def["risk"]
+        desc = filter_def["description"]
+        desc_text = f" ({desc})" if desc else ""
+        
+        # Create simple text label with risk category
+        label = f"[{risk}] {filter_def['name']}{desc_text}"
+        
+        options.append({
+            "label": label,
+            "value": key
+        })
     
     # Get all filter keys to pre-select them
     all_filter_keys = list(FILTER_DEFINITIONS.keys())
@@ -130,7 +139,6 @@ def ui_filter_selection() -> List[str]:
     selected_filters = checkbox(
         "Selecteer welke filters u wilt toepassen:", 
         options=options,
-        required=True,
         value=all_filter_keys  # Pre-select all filters
     )
     
@@ -154,7 +162,7 @@ def ui_export_options() -> Dict[str, Any]:
     
     # Use get_resource_path for reading the template
     from data_management import get_resource_path
-    template_path = get_resource_path(os.path.join("resources", "origineel (niet aanpassen).xlsx"))
+    template_path = get_resource_path(os.path.join("resources", "HUP lijst lay-out.xlsx"))
     
     if template_selection == "custom":
         template_file = file_upload("Upload Excel-sjabloon:", accept=".xlsx", required=True)
@@ -215,8 +223,8 @@ def ui_process_and_export(tree: KRO_Tree, selected_filters: List[str], export_op
         # Generate the Excel file
         tree.insert_dataframe_into_excel(
             export_options["template_path"],
-            "Controle objecten", 
-            2, 
+            "Online Checklist Bedrijven", 
+            2,
             output_path=output_path,
             add_A="add_A" in export_options["add_A"],
             remove_no_name="remove_no_name" in export_options["remove_no_name"]

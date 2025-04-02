@@ -247,32 +247,30 @@ class KRO_Tree:
         df['SBI1'] = df['bronsleutel'].map(data_gebruik_filtered_act1code.set_index('aanzien_id')['act1code'])
         df['act1omschr'] = df['bronsleutel'].map(data_gebruik_filtered_act1code.set_index('aanzien_id')['act1omschr'])
 
-
         # Check for duplicates.
         df.drop_duplicates(subset=['id'], keep='first', inplace=True)
 
         # Create new dataframe with selected and new columns
         new_df = pd.DataFrame()
-        new_df['Archiefnummer'] = None
-        new_df['Bouwwerk'] = df['Bouwwerk']
+        # New column order as specified
+        new_df['Naam Bouwwerk'] = df['Bouwwerk']  # Renamed from 'Bouwwerk'
         new_df['Functie'] = df['functie']
         new_df['Risico'] = df['risico_classificatie']
-        new_df['Moet zijn'] = None
+        new_df['Wijziging Naam'] = None  # Previously 'Moet zijn'
         new_df['Adres'] = df['adres']
         new_df['Postcode'] = df['pc6']
         new_df['Gemeente'] = df['gemnaam']
-        # Fill some columns to adhere to original HUP tempalte.
-        new_df = new_df.assign(filler_1=None, filler_12=None, filler_3=None, filler_4=None,
-                               filler_5=None, filler_6=None)
-        new_df['woz oppervlakte (niet woon)'] = df['woz_opp_nietwoon']
-        new_df['Pandhoogte'] = df['pandhoogte']
+        new_df['Checklist verstuurd?'] = None  # New column
+        new_df['Checklist uitgevoerd?'] = None  # New column
+        new_df['Datum uitgevoerd'] = None  # New column
         new_df['Personen'] = df['personen']
-        new_df['SBI1'] = df['SBI1']  # add new 'SBI1' column to new_df
+        new_df['SBI1'] = df['SBI1']
         new_df['SBI Omschrijving'] = df['act1omschr']
-        new_df['x'] = df['x']
-        new_df['y'] = df['y']
         new_df['Bouwjaar'] = df['bouwjaar']
         new_df['Bouwlagen'] = df['bouwlagen']
+        new_df['Pandhoogte'] = df['pandhoogte']
+        new_df['x'] = df['x']
+        new_df['y'] = df['y']
         # New columns can be added here
         return new_df
 
